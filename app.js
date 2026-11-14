@@ -1,32 +1,3 @@
-const initialLeads = [
-  { id: 1, name: 'Priya Sharma', initials: 'PS', company: 'Aster Labs', email: 'priya@asterlabs.in', phone: '+91 98765 23104', source: 'Website', status: 'New', owner: 'Alex Morgan', date: 'Today' },
-  { id: 2, name: 'Rohan Mehta', initials: 'RM', company: 'Blueleaf Foods', email: 'rohan@blueleaf.in', phone: '+91 98210 44782', source: 'Referral', status: 'Contacted', owner: 'Alex Morgan', date: 'Today' },
-  { id: 3, name: 'Ananya Iyer', initials: 'AI', company: 'Verve Studio', email: 'ananya@verve.in', phone: '+91 98450 17391', source: 'WhatsApp', status: 'Qualified', owner: 'Jamie Lee', date: 'Yesterday' },
-  { id: 4, name: 'Kabir Patel', initials: 'KP', company: 'Orbit Systems', email: 'kabir@orbit.io', phone: '+91 98980 61234', source: 'IndiaMART', status: 'New', owner: 'Alex Morgan', date: 'Yesterday' },
-  { id: 5, name: 'Meera Nair', initials: 'MN', company: 'Field & Form', email: 'meera@fieldform.in', phone: '+91 98470 88915', source: 'Event', status: 'Contacted', owner: 'Jamie Lee', date: '12 Jun 2024' },
-  { id: 6, name: 'Arjun Desai', initials: 'AD', company: 'Nimble Works', email: 'arjun@nimble.co', phone: '+91 98190 52011', source: 'Referral', status: 'Qualified', owner: 'Alex Morgan', date: '11 Jun 2024' }
-];
-const initialTasks = [
-  { id: 1, title: 'Follow up on product demo', person: 'Priya Sharma · Aster Labs', type: 'Call', time: '09:30 AM', overdue: true, done: false },
-  { id: 2, title: 'Send revised proposal', person: 'Rohan Mehta · Blueleaf Foods', type: 'Email', time: '11:00 AM', overdue: false, done: false },
-  { id: 3, title: 'Discovery meeting', person: 'Ananya Iyer · Verve Studio', type: 'Meeting', time: '02:30 PM', overdue: false, done: false },
-  { id: 4, title: 'Share case study', person: 'Kabir Patel · Orbit Systems', type: 'WhatsApp', time: '04:00 PM', overdue: false, done: false },
-  { id: 5, title: 'Call back about pricing', person: 'Meera Nair · Field & Form', type: 'Call', time: 'Yesterday', overdue: true, done: false }
-];
-const closeDateAfter = (days) => {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
-};
-const initialDeals = [
-  { id: 1, title: 'Annual platform license', company: 'Aster Labs', value: 185000, stage: 'Qualified', owner: 'Alex Morgan', close: closeDateAfter(14) },
-  { id: 2, title: 'Team workspace rollout', company: 'Blueleaf Foods', value: 240000, stage: 'Proposal Sent', owner: 'Alex Morgan', close: closeDateAfter(16) },
-  { id: 3, title: 'Sales enablement suite', company: 'Verve Studio', value: 96000, stage: 'Meeting / Demo', owner: 'Jamie Lee', close: closeDateAfter(20) },
-  { id: 4, title: 'Enterprise onboarding', company: 'Orbit Systems', value: 320000, stage: 'Negotiation', owner: 'Alex Morgan', close: closeDateAfter(31) },
-  { id: 5, title: 'CRM implementation', company: 'Nimble Works', value: 145000, stage: 'New', owner: 'Jamie Lee', close: closeDateAfter(38) },
-  { id: 6, title: 'Customer success package', company: 'Field & Form', value: 78000, stage: 'Proposal Sent', owner: 'Jamie Lee', close: closeDateAfter(45) }
-];
-
 const readStored = (key, fallback) => {
   try {
     const stored = localStorage.getItem(key);
@@ -36,11 +7,40 @@ const readStored = (key, fallback) => {
     return fallback;
   }
 };
-let leads = readStored('salesdesk-leads', initialLeads);
-let tasks = readStored('salesdesk-tasks', initialTasks);
-let deals = readStored('salesdesk-deals', initialDeals);
+function loadWorkspaceData() {
+  const data = {
+    leads: readStored('salesdesk-leads', []),
+    tasks: readStored('salesdesk-tasks', []),
+    deals: readStored('salesdesk-deals', [])
+  };
+  let shouldClearLegacySamples = false;
+  try {
+    shouldClearLegacySamples = localStorage.getItem('salesdesk-demo-data-cleared-v1') !== 'true';
+  } catch (error) {
+    console.warn('Could not check the workspace data migration.', error);
+  }
+  if (shouldClearLegacySamples) {
+    data.leads = Array.isArray(data.leads) ? data.leads.filter((item) => item && ![1, 2, 3, 4, 5, 6].includes(Number(item.id))) : [];
+    data.tasks = Array.isArray(data.tasks) ? data.tasks.filter((item) => item && ![1, 2, 3, 4, 5].includes(Number(item.id))) : [];
+    data.deals = Array.isArray(data.deals) ? data.deals.filter((item) => item && ![1, 2, 3, 4, 5, 6].includes(Number(item.id))) : [];
+    try {
+      localStorage.setItem('salesdesk-leads', JSON.stringify(data.leads));
+      localStorage.setItem('salesdesk-tasks', JSON.stringify(data.tasks));
+      localStorage.setItem('salesdesk-deals', JSON.stringify(data.deals));
+      localStorage.setItem('salesdesk-demo-data-cleared-v1', 'true');
+    } catch (error) {
+      console.warn('Could not clear legacy sample data from this browser.', error);
+    }
+  }
+  return data;
+}
+const workspaceData = loadWorkspaceData();
+let leads = Array.isArray(workspaceData.leads) ? workspaceData.leads : [];
+let tasks = Array.isArray(workspaceData.tasks) ? workspaceData.tasks : [];
+let deals = Array.isArray(workspaceData.deals) ? workspaceData.deals : [];
 let currentPage = 'Overview';
 let toastTimer;
+const teamName = 'Monarch Team';
 
 const money = (amount) => `₹${(amount / 100000).toLocaleString('en-IN', { maximumFractionDigits: 1 })}L`;
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
@@ -75,7 +75,7 @@ function renderLeadRows(list) {
       <td class="company-cell">${esc(lead.company || '—')}</td>
       <td><span class="source-icon">${lead.source === 'Website' ? '⌘' : lead.source === 'Referral' ? '↗' : lead.source === 'WhatsApp' ? '◌' : '＋'}</span>${esc(lead.source || 'Other')}</td>
       <td><span class="status-pill ${statusClass(lead.status)}">${esc(lead.status)}</span></td>
-      <td>${esc(lead.owner || 'Alex Morgan')}</td>
+      <td>${esc(lead.owner || teamName)}</td>
       <td>${esc(lead.date || 'Today')}</td>
     </tr>`).join('');
 }
@@ -92,15 +92,16 @@ function renderTaskRows(list, compact = false) {
 
 function renderOverview() {
   const openValue = deals.filter((deal) => !['Won', 'Lost'].includes(deal.stage)).reduce((sum, deal) => sum + Number(deal.value || 0), 0);
+  const wonValue = deals.filter((deal) => deal.stage === 'Won').reduce((sum, deal) => sum + Number(deal.value || 0), 0);
   const openTasks = tasks.filter((task) => !task.done);
   const newLeads = leads.filter((lead) => lead.status === 'New').length;
   return `
-    <div class="page-heading"><div><h1>Good morning, Alex <span aria-hidden="true">✳</span></h1><p>Here’s what’s happening with your sales today.</p></div><div class="heading-actions"><span class="date-pill"><span>▦</span> ${esc(todayFormatted())}</span><button class="button button-primary" data-action="add-lead"><span>＋</span> Add a lead</button></div></div>
+    <div class="page-heading"><div><h1>Welcome, Monarch Team <span aria-hidden="true">✳</span></h1><p>Here’s what’s happening with your sales today.</p></div><div class="heading-actions"><span class="date-pill"><span>▦</span> ${esc(todayFormatted())}</span><button class="button button-primary" data-action="add-lead"><span>＋</span> Add a lead</button></div></div>
     <div class="metric-grid">
-      <article class="metric-card"><div class="metric-top">Open pipeline <span class="metric-icon">▱</span></div><div class="metric-value">${money(openValue)}</div><div class="metric-foot"><span class="trend-up">↑ 12.8%</span> vs last month</div></article>
-      <article class="metric-card"><div class="metric-top">Won this month <span class="metric-icon">↗</span></div><div class="metric-value">₹8.4L</div><div class="metric-foot"><span class="trend-up">↑ 8.2%</span> vs last month</div></article>
+      <article class="metric-card"><div class="metric-top">Open pipeline <span class="metric-icon">▱</span></div><div class="metric-value">${money(openValue)}</div><div class="metric-foot">Across active deals</div></article>
+      <article class="metric-card"><div class="metric-top">Won deals <span class="metric-icon">↗</span></div><div class="metric-value">${money(wonValue)}</div><div class="metric-foot">Total closed-won value</div></article>
       <article class="metric-card"><div class="metric-top">Tasks to complete <span class="metric-icon">☷</span></div><div class="metric-value">${openTasks.length}</div><div class="metric-foot"><span class="trend-down">${openTasks.filter((task) => task.overdue).length} overdue</span> · Keep the momentum</div></article>
-      <article class="metric-card"><div class="metric-top">New leads <span class="metric-icon">⌁</span></div><div class="metric-value">${newLeads}</div><div class="metric-foot"><span class="trend-up">↑ 3</span> added this week</div></article>
+      <article class="metric-card"><div class="metric-top">New leads <span class="metric-icon">⌁</span></div><div class="metric-value">${newLeads}</div><div class="metric-foot">Awaiting first contact</div></article>
     </div>
     <div class="content-grid">
       <section class="panel"><div class="panel-header"><div><h2 class="panel-title">Pipeline overview</h2><p class="panel-subtitle">A snapshot of your active deals</p></div><button class="text-link" data-page="Deals">View pipeline →</button></div>
@@ -124,7 +125,7 @@ function renderLeads() {
       <article class="metric-card"><div class="metric-top">All leads <span class="metric-icon">⌁</span></div><div class="metric-value">${leads.length}</div><div class="metric-foot">Across all sources</div></article>
       <article class="metric-card"><div class="metric-top">New to contact <span class="metric-icon">◷</span></div><div class="metric-value">${leads.filter((lead) => lead.status === 'New').length}</div><div class="metric-foot"><span class="trend-down">Needs a first touch</span></div></article>
       <article class="metric-card"><div class="metric-top">Qualified <span class="metric-icon">✓</span></div><div class="metric-value">${leads.filter((lead) => lead.status === 'Qualified').length}</div><div class="metric-foot">Ready for a deal</div></article>
-      <article class="metric-card"><div class="metric-top">This week <span class="metric-icon">↗</span></div><div class="metric-value">${leads.filter((lead) => ['Today','Yesterday'].includes(lead.date)).length}</div><div class="metric-foot"><span class="trend-up">↑ 18%</span> vs last week</div></article>
+      <article class="metric-card"><div class="metric-top">Recent leads <span class="metric-icon">↗</span></div><div class="metric-value">${leads.filter((lead) => ['Today','Yesterday'].includes(lead.date)).length}</div><div class="metric-foot">Added today or yesterday</div></article>
     </div>
     <section class="table-panel" data-searchable><div class="panel-header"><div><h2 class="panel-title">All leads</h2><p class="panel-subtitle">A little follow-up goes a long way.</p></div><div class="filters-row"><select class="filter-select" id="lead-status-filter" aria-label="Filter leads by status"><option value="">All statuses</option><option>New</option><option>Contacted</option><option>Qualified</option><option>Unqualified</option></select></div></div>
       <div class="table-wrap"><table><thead><tr><th>CONTACT</th><th>COMPANY</th><th>SOURCE</th><th>STATUS</th><th>OWNER</th><th>ADDED</th></tr></thead><tbody id="leads-table-body">${renderLeadRows(leads)}</tbody></table></div><div class="table-footer" id="lead-count">${leads.length} leads in your workspace</div>
@@ -133,21 +134,25 @@ function renderLeads() {
 
 function renderCustomers() {
   const unique = [...new Map(leads.map((lead) => [lead.company || lead.name, lead])).values()];
+  const activeDeals = deals.filter((deal) => !['Won', 'Lost'].includes(deal.stage)).length;
   return `<div class="page-heading"><div><h1>Customers</h1><p>Your customer relationships, all in one place.</p></div><div class="heading-actions"><button class="button button-quiet" data-action="export-leads">↓ Export CSV</button><button class="button button-primary" data-action="add-lead"><span>＋</span> Add customer</button></div></div>
     <div class="metric-grid">
-      <article class="metric-card"><div class="metric-top">Total accounts <span class="metric-icon">♧</span></div><div class="metric-value">${unique.length + 18}</div><div class="metric-foot">Your customer directory</div></article>
-      <article class="metric-card"><div class="metric-top">Active opportunities <span class="metric-icon">▱</span></div><div class="metric-value">${deals.length}</div><div class="metric-foot">Across ${unique.length} accounts</div></article>
+      <article class="metric-card"><div class="metric-top">Total accounts <span class="metric-icon">♧</span></div><div class="metric-value">${unique.length}</div><div class="metric-foot">Your customer directory</div></article>
+      <article class="metric-card"><div class="metric-top">Active opportunities <span class="metric-icon">▱</span></div><div class="metric-value">${activeDeals}</div><div class="metric-foot">Across ${unique.length} accounts</div></article>
       <article class="metric-card"><div class="metric-top">Needs follow-up <span class="metric-icon">◷</span></div><div class="metric-value">${tasks.filter((task) => !task.done).length}</div><div class="metric-foot">Keep every conversation warm</div></article>
-      <article class="metric-card"><div class="metric-top">New this month <span class="metric-icon">↗</span></div><div class="metric-value">${unique.length}</div><div class="metric-foot">Contacts and prospects</div></article>
+      <article class="metric-card"><div class="metric-top">Total contacts <span class="metric-icon">↗</span></div><div class="metric-value">${leads.length}</div><div class="metric-foot">Across all accounts</div></article>
     </div>
-    <section class="table-panel"><div class="panel-header"><div><h2 class="panel-title">Accounts & contacts</h2><p class="panel-subtitle">A quick view of your customer book</p></div><button class="text-link" data-action="add-lead">＋ Add contact</button></div><div class="table-wrap"><table><thead><tr><th>CONTACT</th><th>COMPANY</th><th>EMAIL</th><th>PHONE</th><th>LIFECYCLE</th><th>OWNER</th></tr></thead><tbody>${unique.map((lead, i) => `<tr><td><div class="person-cell"><span class="person-avatar ${avatarClass(i)}">${esc(lead.initials || initialsFor(lead.name))}</span><span>${esc(lead.name)}</span></div></td><td class="company-cell">${esc(lead.company || '—')}</td><td>${esc(lead.email || '—')}</td><td>${esc(lead.phone || '—')}</td><td><span class="status-pill ${statusClass(lead.status === 'Qualified' ? 'Customer' : lead.status === 'New' ? 'Lead' : 'Prospect')}">${lead.status === 'Qualified' ? 'Customer' : lead.status === 'New' ? 'Lead' : 'Prospect'}</span></td><td>${esc(lead.owner || 'Alex Morgan')}</td></tr>`).join('')}</tbody></table></div><div class="table-footer">${unique.length} recent accounts shown</div></section>`;
+    <section class="table-panel"><div class="panel-header"><div><h2 class="panel-title">Accounts & contacts</h2><p class="panel-subtitle">A quick view of your customer book</p></div><button class="text-link" data-action="add-lead">＋ Add contact</button></div><div class="table-wrap"><table><thead><tr><th>CONTACT</th><th>COMPANY</th><th>EMAIL</th><th>PHONE</th><th>LIFECYCLE</th><th>OWNER</th></tr></thead><tbody>${unique.length ? unique.map((lead, i) => `<tr><td><div class="person-cell"><span class="person-avatar ${avatarClass(i)}">${esc(lead.initials || initialsFor(lead.name))}</span><span>${esc(lead.name)}</span></div></td><td class="company-cell">${esc(lead.company || '—')}</td><td>${esc(lead.email || '—')}</td><td>${esc(lead.phone || '—')}</td><td><span class="status-pill ${statusClass(lead.status === 'Qualified' ? 'Customer' : lead.status === 'New' ? 'Lead' : 'Prospect')}">${lead.status === 'Qualified' ? 'Customer' : lead.status === 'New' ? 'Lead' : 'Prospect'}</span></td><td>${esc(lead.owner || teamName)}</td></tr>`).join('') : '<tr><td colspan="6"><div class="empty-state">No accounts yet. Add your first customer or lead.</div></td></tr>'}</tbody></table></div><div class="table-footer">${unique.length} accounts shown</div></section>`;
 }
 
 function renderDeals() {
   const stages = ['New','Qualified','Meeting / Demo','Proposal Sent','Negotiation'];
   const currentMonth = new Date().toLocaleDateString('en-IN', { month: 'short' });
-  return `<div class="page-heading"><div><h1>Deals</h1><p>See what’s moving, what’s stuck, and what’s next.</p></div><div class="heading-actions"><span class="date-pill"><span>▱</span> ${deals.length} active deals</span><button class="button button-primary" data-action="add-deal"><span>＋</span> Add a deal</button></div></div>
-    <div class="metric-grid"><article class="metric-card"><div class="metric-top">Open pipeline <span class="metric-icon">▱</span></div><div class="metric-value">${money(deals.reduce((sum, deal) => sum + Number(deal.value || 0), 0))}</div><div class="metric-foot">Weighted opportunity value</div></article><article class="metric-card"><div class="metric-top">Average deal <span class="metric-icon">↗</span></div><div class="metric-value">${money(deals.length ? deals.reduce((sum, deal) => sum + Number(deal.value || 0), 0) / deals.length : 0)}</div><div class="metric-foot">Across active opportunities</div></article><article class="metric-card"><div class="metric-top">Closing this month <span class="metric-icon">◷</span></div><div class="metric-value">${deals.filter((deal) => String(deal.close).endsWith(currentMonth)).length}</div><div class="metric-foot">Deals with an upcoming close</div></article><article class="metric-card"><div class="metric-top">Won this month <span class="metric-icon">✓</span></div><div class="metric-value">₹8.4L</div><div class="metric-foot"><span class="trend-up">↑ 8.2%</span> vs last month</div></article></div>
+  const activeDeals = deals.filter((deal) => !['Won', 'Lost'].includes(deal.stage));
+  const activeValue = activeDeals.reduce((sum, deal) => sum + Number(deal.value || 0), 0);
+  const wonValue = deals.filter((deal) => deal.stage === 'Won').reduce((sum, deal) => sum + Number(deal.value || 0), 0);
+  return `<div class="page-heading"><div><h1>Deals</h1><p>See what’s moving, what’s stuck, and what’s next.</p></div><div class="heading-actions"><span class="date-pill"><span>▱</span> ${activeDeals.length} active deals</span><button class="button button-primary" data-action="add-deal"><span>＋</span> Add a deal</button></div></div>
+    <div class="metric-grid"><article class="metric-card"><div class="metric-top">Open pipeline <span class="metric-icon">▱</span></div><div class="metric-value">${money(activeValue)}</div><div class="metric-foot">Across active opportunities</div></article><article class="metric-card"><div class="metric-top">Average deal <span class="metric-icon">↗</span></div><div class="metric-value">${money(activeDeals.length ? activeValue / activeDeals.length : 0)}</div><div class="metric-foot">Across active opportunities</div></article><article class="metric-card"><div class="metric-top">Closing this month <span class="metric-icon">◷</span></div><div class="metric-value">${activeDeals.filter((deal) => String(deal.close).endsWith(currentMonth)).length}</div><div class="metric-foot">Deals with an upcoming close</div></article><article class="metric-card"><div class="metric-top">Won deals <span class="metric-icon">✓</span></div><div class="metric-value">${money(wonValue)}</div><div class="metric-foot">Total closed-won value</div></article></div>
     <div class="deal-board">${stages.map((stage) => { const items = deals.filter((deal) => deal.stage === stage); const amount = items.reduce((sum, deal) => sum + Number(deal.value || 0), 0); return `<section class="deal-column"><div class="deal-column-header"><span>${esc(stage)}</span><small>${items.length}</small></div>${items.length ? items.map((deal) => `<article class="deal-card"><h3>${esc(deal.title)}</h3><p>${esc(deal.company)} · ${esc(deal.owner)}</p><div class="deal-card-foot"><span>${money(deal.value)}</span><span>↗ ${esc(deal.close)}</span></div><label class="sr-only" for="deal-stage-${deal.id}">Move ${esc(deal.title)} to stage</label><select class="deal-stage-select" id="deal-stage-${deal.id}" data-deal-id="${deal.id}">${[...stages,'Won','Lost'].map((option) => `<option ${option === deal.stage ? 'selected' : ''}>${esc(option)}</option>`).join('')}</select></article>`).join('') : '<div class="empty-state">No deals here yet</div>'}<div class="deal-column-header"><span>Total</span><span>${money(amount)}</span></div></section>`; }).join('')}</div>`;
 }
 
@@ -172,9 +177,10 @@ function renderToday() {
 function renderReports() {
   const won = deals.filter((deal) => deal.stage === 'Won').reduce((sum, deal) => sum + Number(deal.value || 0), 0);
   const pipeline = deals.filter((deal) => !['Won','Lost'].includes(deal.stage)).reduce((sum, deal) => sum + Number(deal.value || 0), 0);
-  return `<div class="page-heading"><div><h1>Reports & insights</h1><p>Keep an eye on the numbers that move your team forward.</p></div><div class="heading-actions"><span class="date-pill"><span>▦</span> This month <span>⌄</span></span><button class="button button-quiet" data-action="export-leads">↓ Export</button></div></div>
-    <div class="report-grid"><article class="report-card"><h3>Revenue won</h3><div class="report-number">₹8.4L</div><p><span class="trend-up">↑ 8.2%</span> compared to last month</p><div class="mini-chart">${[38,52,43,61,55,72,61,85,69,76,92,81].map((n) => `<span style="height:${n}%"></span>`).join('')}</div></article><article class="report-card"><h3>Open pipeline</h3><div class="report-number">${money(pipeline)}</div><p>Across ${deals.length} active opportunities</p><div class="mini-chart">${[34,47,40,65,57,51,75,68,83,74,95,89].map((n) => `<span style="height:${n}%"></span>`).join('')}</div></article><article class="report-card"><h3>Team target</h3><div class="report-number">68%</div><p>₹8.4L achieved of ₹12.3L target</p><div class="stage-bar" style="height:8px;margin-top:27px"><div class="stage-fill" style="width:68%"></div></div></article></div>
-    <div class="content-grid"><section class="panel"><div class="panel-header"><div><h2 class="panel-title">Lead sources</h2><p class="panel-subtitle">Where this month’s conversations started</p></div></div>${[['Website',42],['Referral',29],['WhatsApp',18],['IndiaMART',11]].map(([name, value]) => `<div class="source-row"><span class="source-name">${name}</span><span class="source-progress"><span style="width:${value}%"></span></span><span class="source-value">${value}%</span></div>`).join('')}</section><section class="panel"><div class="panel-header"><div><h2 class="panel-title">Activity this week</h2><p class="panel-subtitle">A consistent rhythm builds trust.</p></div></div><div class="metric-value" style="margin-top:22px">47 <small style="font:400 11px 'DM Sans';color:#929b95">touchpoints</small></div><p class="panel-subtitle"><span class="trend-up">↑ 12%</span> from last week</p><div class="mini-chart">${[56,38,72,44,68,88,49].map((n) => `<span style="height:${n}%"></span>`).join('')}</div></section></div>`;
+  const sources = [...new Set(leads.map((lead) => lead.source || 'Other'))].map((name) => [name, leads.filter((lead) => (lead.source || 'Other') === name).length]);
+  return `<div class="page-heading"><div><h1>Reports & insights</h1><p>Keep an eye on the numbers that move your team forward.</p></div><div class="heading-actions"><span class="date-pill"><span>▦</span> All time</span><button class="button button-quiet" data-action="export-leads">↓ Export</button></div></div>
+    <div class="report-grid"><article class="report-card"><h3>Revenue won</h3><div class="report-number">${money(won)}</div><p>Total value of closed-won deals</p></article><article class="report-card"><h3>Open pipeline</h3><div class="report-number">${money(pipeline)}</div><p>Across ${deals.filter((deal) => !['Won','Lost'].includes(deal.stage)).length} active opportunities</p></article><article class="report-card"><h3>Leads</h3><div class="report-number">${leads.length}</div><p>Across all sources</p></article></div>
+    <div class="content-grid"><section class="panel"><div class="panel-header"><div><h2 class="panel-title">Lead sources</h2><p class="panel-subtitle">Leads by source in your workspace</p></div></div>${sources.length ? sources.map(([name, count]) => `<div class="source-row"><span class="source-name">${esc(name)}</span><span class="source-progress"><span style="width:${leads.length ? count / leads.length * 100 : 0}%"></span></span><span class="source-value">${count}</span></div>`).join('') : '<div class="empty-state">Lead source reports will appear when you add leads.</div>'}</section><section class="panel"><div class="panel-header"><div><h2 class="panel-title">Workspace activity</h2><p class="panel-subtitle">Your current follow-up workload</p></div></div><div class="metric-value" style="margin-top:22px">${tasks.filter((task) => !task.done).length} <small style="font:400 11px 'DM Sans';color:#929b95">open tasks</small></div><p class="panel-subtitle">${tasks.filter((task) => task.done).length} completed tasks</p></section></div>`;
 }
 
 const renderers = { Overview: renderOverview, Today: renderToday, Leads: renderLeads, Customers: renderCustomers, Deals: renderDeals, Tasks: renderTasks, Reports: renderReports };
@@ -247,20 +253,20 @@ function openEntityModal(type) {
     : 'Add the opportunity to your pipeline and keep it moving.';
   document.querySelector('#entity-submit').innerHTML = isTask ? 'Save task <span>→</span>' : 'Save deal <span>→</span>';
   document.querySelector('#entity-fields').innerHTML = isTask ? `
-    <label class="form-field">Task name <span>*</span><input name="title" required placeholder="e.g. Follow up on proposal" /></label>
+    <label class="form-field">Task name <span>*</span><input name="title" required placeholder="Task name" /></label>
     <div class="form-row">
       <label class="form-field">Type<select name="type"><option>Call</option><option>Meeting</option><option>Visit</option><option>Email</option><option>WhatsApp</option><option>Demo</option><option>Other</option></select></label>
-      <label class="form-field">Customer or deal<input name="person" placeholder="e.g. Priya Sharma · Aster Labs" /></label>
+      <label class="form-field">Customer or deal<input name="person" placeholder="Customer or deal name" /></label>
     </div>
     <div class="form-row">
       <label class="form-field">Due date<input name="date" type="date" required /></label>
       <label class="form-field">Time<input name="time" type="time" required value="10:00" /></label>
     </div>
   ` : `
-    <label class="form-field">Deal name <span>*</span><input name="title" required placeholder="e.g. Annual platform license" /></label>
+    <label class="form-field">Deal name <span>*</span><input name="title" required placeholder="Deal name" /></label>
     <div class="form-row">
       <label class="form-field">Customer or company <span>*</span><input name="company" required placeholder="Company name" /></label>
-      <label class="form-field">Deal value (INR) <span>*</span><input name="value" type="number" min="1" step="1" required placeholder="e.g. 150000" /></label>
+      <label class="form-field">Deal value (INR) <span>*</span><input name="value" type="number" min="1" step="1" required placeholder="Amount in INR" /></label>
     </div>
     <div class="form-row">
       <label class="form-field">Pipeline stage<select name="stage">${['New','Qualified','Meeting / Demo','Proposal Sent','Negotiation'].map((stage) => `<option>${stage}</option>`).join('')}</select></label>
@@ -285,7 +291,7 @@ function exportLeads() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
   link.href = url;
-  link.download = 'salesdesk-leads.csv';
+  link.download = 'monarch-technologies-leads.csv';
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -351,7 +357,7 @@ document.querySelector('#lead-form').addEventListener('submit', (event) => {
     showToast(`A lead with this ${duplicate.phone.replace(/\D/g, '') === phone.replace(/\D/g, '') ? 'phone number' : 'email'} already exists.`);
     return;
   }
-  leads.unshift({ id: Date.now(), name, initials: initialsFor(name), company: String(data.get('company') || '').trim(), email, phone, source: String(data.get('source') || 'Other'), status: 'New', owner: 'Alex Morgan', date: 'Today', requirement: String(data.get('requirement') || '').trim() });
+  leads.unshift({ id: Date.now(), name, initials: initialsFor(name), company: String(data.get('company') || '').trim(), email, phone, source: String(data.get('source') || 'Other'), status: 'New', owner: teamName, date: 'Today', requirement: String(data.get('requirement') || '').trim() });
   persist();
   closeLeadModal();
   renderAll();
@@ -386,7 +392,7 @@ document.querySelector('#entity-form').addEventListener('submit', (event) => {
       company: String(data.get('company') || '').trim(),
       value: Number(data.get('value')),
       stage: String(data.get('stage') || 'New'),
-      owner: 'Alex Morgan',
+      owner: teamName,
       close: closeDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
     });
     showToast('Deal added to your pipeline.');

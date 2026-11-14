@@ -119,6 +119,7 @@ kbd { flex: 0 0 auto; padding: 2px 4px; border: 1px solid #e6e9e6; border-radius
 .task-copy strong { display: block; overflow: hidden; color: #3d4941; font-size: 10px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
 .task-copy small { display: block; margin-top: 4px; color: #99a19b; font-size: 9px; }
 .task-time { color: #7b867e; font-size: 9px; white-space: nowrap; }
+.task-edit { flex: 0 0 auto; border: 0; padding: 3px 4px; color: var(--green); background: transparent; font-size: 9px; font-weight: 600; }
 .task-row.overdue .task-time { color: var(--red); }
 .priority-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 4px; background: var(--orange); vertical-align: middle; }
 .task-row.done .task-copy strong { color: #a4aca6; text-decoration: line-through; }
@@ -146,6 +147,7 @@ tbody tr:hover { background: #fbfcfb; }
 .status-won { background: #eaf3ed; color: #4c805c; }
 .status-lost { background: #f8ecea; color: #ab6b64; }
 .source-icon { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 5px; border-radius: 6px; background: #f2f4f2; color: #738078; vertical-align: middle; }
+.table-edit { min-height: 27px; padding: 0 8px; font-size: 10px; }
 .more-button { border: 0; padding: 2px 6px; background: transparent; color: #98a19b; font-size: 14px; }
 .empty-state { padding: 30px 15px; color: var(--muted); text-align: center; font-size: 11px; }
 .table-footer { padding: 11px 16px; border-top: 1px solid #f0f2ef; color: #98a19b; font-size: 10px; }
@@ -197,6 +199,9 @@ tbody tr:hover { background: #fbfcfb; }
 .form-field input:focus, .form-field select:focus, .form-field textarea:focus { border-color: #9db9a4; box-shadow: 0 0 0 3px rgba(95,146,108,.1); }
 .form-field input::placeholder, .form-field textarea::placeholder { color: #b1b8b2; }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.form-check-row { display: flex; gap: 18px; margin: 3px 0 14px; }
+.form-check { display: flex; align-items: center; gap: 7px; color: #4b584f; font-size: 10px; }
+.form-check input { accent-color: var(--green); }
 .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 5px; padding-top: 15px; border-top: 1px solid #f0f2ef; }
 .toast { position: fixed; z-index: 30; right: 22px; bottom: 20px; max-width: calc(100vw - 44px); padding: 12px 16px; border-radius: 8px; background: #263d2e; color: #fff; box-shadow: 0 8px 25px rgba(20,40,28,.2); font-size: 11px; opacity: 0; pointer-events: none; transform: translateY(8px); transition: opacity .2s, transform .2s; }
 .toast.show { opacity: 1; transform: translateY(0); }
